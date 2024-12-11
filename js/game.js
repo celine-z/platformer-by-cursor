@@ -1,6 +1,11 @@
 const player = document.getElementById('player');
 const gameContainer = document.getElementById('game-container');
 
+// Update just the background at the top of your file
+gameContainer.style.backgroundImage = 'url("https://i.ibb.co/vHj5XWF/cartoon-sky.png")';
+gameContainer.style.backgroundSize = 'cover';
+gameContainer.style.backgroundPosition = 'center';
+
 // Add score display
 const scoreDisplay = document.createElement('div');
 scoreDisplay.style.position = 'absolute';
@@ -44,6 +49,9 @@ let isJumping = false;
 let gameRunning = false;
 let animationFrameId = null;
 
+// Add double jump state near other game constants
+let canDoubleJump = true;
+
 // Platform generation
 function createPlatform(x, y, width = 100) {
     const platform = document.createElement('div');
@@ -51,6 +59,10 @@ function createPlatform(x, y, width = 100) {
     platform.style.left = x + 'px';
     platform.style.top = y + 'px';
     platform.style.width = width + 'px';
+    platform.style.height = '30px';
+    platform.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+    platform.style.borderRadius = '15px';
+    platform.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
     gameContainer.appendChild(platform);
 }
 
@@ -58,13 +70,13 @@ function createPlatform(x, y, width = 100) {
 function initPlatforms() {
     document.querySelectorAll('.platform').forEach(p => p.remove());
     
-    // Create ground
+    // Create ground (keeping it solid)
     createPlatform(0, 370, 800);
     
-    // Create starting platforms
-    createPlatform(300, 250);
-    createPlatform(500, 150);
-    createPlatform(700, 200);
+    // Create starting cloud platforms higher up (lowered the y values)
+    createPlatform(300, 250);  // Changed from 200 to 250
+    createPlatform(500, 180);  // Changed from 120 to 180
+    createPlatform(700, 220);  // Changed from 180 to 220
 }
 
 // Controls
@@ -82,6 +94,10 @@ document.addEventListener('keydown', function(e) {
             if (!isJumping) {
                 playerPos.velocityY = -jumpForce;
                 isJumping = true;
+                canDoubleJump = true;
+            } else if (canDoubleJump) {
+                playerPos.velocityY = -jumpForce;
+                canDoubleJump = false;
             }
             break;
     }
@@ -157,6 +173,7 @@ function gameLoop() {
                 nextY = platformRect.top - gameRect.top - 30;
                 playerPos.velocityY = 0;
                 isJumping = false;
+                canDoubleJump = true;  // Reset double jump when landing
                 onPlatform = true;
             }
         }
@@ -193,6 +210,7 @@ function startGame() {
         velocityY: 0
     };
     isJumping = false;
+    canDoubleJump = true;
     
     initPlatforms();
     startButton.style.display = 'none';
