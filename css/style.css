@@ -1,0 +1,29 @@
+#game-container {
+    width: 800px;
+    height: 400px;
+    margin: 0 auto;
+    position: relative;
+    background-color: skyblue;
+    overflow: hidden;
+}
+
+#player {
+    width: 30px;
+    height: 30px;
+    background-color: red;
+    position: absolute;
+    left: 50px;
+    bottom: 50px;
+}
+
+.platform {
+    width: 100px;
+    height: 20px;
+    background-color: green;
+    position: absolute;
+}
+
+/* Position platforms */
+.platform:nth-child(2) { left: 0; bottom: 20px; width: 200px; }
+.platform:nth-child(3) { left: 300px; bottom: 120px; }
+.platform:nth-child(4) { left: 500px; bottom: 200px; }
