@@ -1,34 +1,17 @@
+// DOM Elements
 const player = document.getElementById('player');
 const gameContainer = document.getElementById('game-container');
 
-// Update just the background at the top of your file
-gameContainer.style.backgroundImage = 'url("https://i.ibb.co/vHj5XWF/cartoon-sky.png")';
-gameContainer.style.backgroundSize = 'cover';
-gameContainer.style.backgroundPosition = 'center';
-
 // Add score display
 const scoreDisplay = document.createElement('div');
-scoreDisplay.style.position = 'absolute';
-scoreDisplay.style.top = '10px';
-scoreDisplay.style.left = '10px';
-scoreDisplay.style.color = 'black';
-scoreDisplay.style.fontSize = '20px';
+scoreDisplay.id = 'score-display';
 gameContainer.appendChild(scoreDisplay);
 
-// Add start button with z-index
-const startButton = document.createElement('button');
-startButton.textContent = 'Start Game';
-startButton.style.position = 'absolute';
-startButton.style.left = '50%';
-startButton.style.top = '50%';
-startButton.style.transform = 'translate(-50%, -50%)';
-startButton.style.padding = '10px 20px';
-startButton.style.fontSize = '20px';
-startButton.style.cursor = 'pointer';
-startButton.style.zIndex = '1000';
-gameContainer.appendChild(startButton);
-
-let score = 0;
+// Add message display
+const messageDisplay = document.createElement('div');
+messageDisplay.id = 'message-display';
+messageDisplay.textContent = 'press any key to start';
+gameContainer.appendChild(messageDisplay);
 
 // Player physics
 let playerPos = {
@@ -44,13 +27,10 @@ const jumpForce = 12;
 const moveSpeed = 5;
 const platformSpeed = 2;
 let isJumping = false;
-
-// Add game state
 let gameRunning = false;
 let animationFrameId = null;
-
-// Add double jump state near other game constants
 let canDoubleJump = true;
+let score = 0;
 
 // Platform generation
 function createPlatform(x, y, width = 100) {
@@ -59,29 +39,25 @@ function createPlatform(x, y, width = 100) {
     platform.style.left = x + 'px';
     platform.style.top = y + 'px';
     platform.style.width = width + 'px';
-    platform.style.height = '30px';
-    platform.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-    platform.style.borderRadius = '15px';
-    platform.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
     gameContainer.appendChild(platform);
 }
 
 // Initialize platforms
 function initPlatforms() {
     document.querySelectorAll('.platform').forEach(p => p.remove());
-    
-    // Create ground (keeping it solid)
-    createPlatform(0, 370, 800);
-    
-    // Create starting cloud platforms higher up (lowered the y values)
-    createPlatform(300, 250);  // Changed from 200 to 250
-    createPlatform(500, 180);  // Changed from 120 to 180
-    createPlatform(700, 220);  // Changed from 180 to 220
+    createPlatform(0, 370, 300);
+    createPlatform(300, 250);
+    createPlatform(500, 180);
+    createPlatform(700, 220);
 }
 
 // Controls
 document.addEventListener('keydown', function(e) {
-    if (!gameRunning) return;
+    if (!gameRunning) {
+        startGame();
+        return;
+    }
+    
     switch(e.key) {
         case 'ArrowLeft':
             playerPos.velocityX = -moveSpeed;
@@ -113,6 +89,7 @@ document.addEventListener('keyup', function(e) {
     }
 });
 
+// Collision detection
 function checkCollision(player, platform) {
     return player.left < platform.right &&
            player.right > platform.left &&
@@ -120,21 +97,89 @@ function checkCollision(player, platform) {
            player.top < platform.bottom;
 }
 
+// Distraction creation
+function createDistraction() {
+    const distraction = document.createElement('div');
+    distraction.className = 'distraction';
+    
+    const startFromSide = Math.random() < 0.5;
+    if (startFromSide) {
+        console.log('Creating airplane distraction!');
+        console.log('Using image path:', './assets/airplane.png');
+        distraction.style.width = '150px';
+        distraction.style.height = '150px';
+        distraction.style.backgroundImage = 'url("./assets/airplane.png")';
+        const startLeft = Math.random() < 0.5;
+        distraction.style.left = (startLeft ? -150 : 800) + 'px';
+        distraction.style.transform = startLeft ? 'scaleX(-1)' : 'scaleX(1)';
+        distraction.style.top = Math.random() * 300 + 'px';
+    } else {
+        console.log('Creating hot air balloon distraction!');
+        console.log('Using image path:', './assets/hot-air-balloon.png');
+        distraction.style.width = '255px';
+        distraction.style.height = '255px';
+        distraction.style.backgroundImage = 'url("./assets/hot-air-balloon.png")';
+        distraction.style.left = Math.random() * 800 + 'px';
+        distraction.style.top = '400px';
+    }
+    
+    gameContainer.appendChild(distraction);
+    
+    let speedX, speedY;
+    if (startFromSide) {
+        const startLeft = distraction.style.left === '-150px';
+        speedX = startLeft ? 3 : -3;
+        speedY = 0;
+    } else {
+        speedX = (Math.random() - 0.5) * 4;
+        speedY = -2 - Math.random() * 3;
+    }
+    
+    return { element: distraction, speedX, speedY };
+}
+
+// Game state array
+let distractions = [];
+
+// Game loop
 function gameLoop() {
-    if (!gameRunning) return;  // Only run if game is active
+    if (!gameRunning) return;
     
-    // Apply gravity
+    if (score > 100) {
+        if (distractions.length < 3 && Math.random() < 0.002) {
+            distractions.push(createDistraction());
+        }
+    }
+    
+    distractions = distractions.filter(distraction => {
+        const element = distraction.element;
+        const left = parseFloat(element.style.left);
+        const top = parseFloat(element.style.top);
+        
+        element.style.left = (left + distraction.speedX) + 'px';
+        element.style.top = (top + distraction.speedY) + 'px';
+        
+        if (element.style.width === '255px') {
+            if (top < -255 || left < -255 || left > 850) {
+                element.remove();
+                return false;
+            }
+        } else {
+            if (top < -50 || left < -150 || left > 850) {
+                element.remove();
+                return false;
+            }
+        }
+        return true;
+    });
+    
     playerPos.velocityY += gravity;
-    
-    // Update position
     playerPos.x += playerPos.velocityX;
     let nextY = playerPos.y + playerPos.velocityY;
 
-    // Check boundaries
     if (playerPos.x < 0) playerPos.x = 0;
     if (playerPos.x > 770) playerPos.x = 770;
 
-    // Create player hitbox for next position
     const playerHitbox = {
         left: playerPos.x,
         right: playerPos.x + 30,
@@ -142,22 +187,18 @@ function gameLoop() {
         bottom: nextY + 30
     };
 
-    // Move platforms and check collisions
     let onPlatform = false;
     const platforms = document.querySelectorAll('.platform');
     
     platforms.forEach(platform => {
-        // Move platform
         let left = parseInt(platform.style.left) - platformSpeed;
         platform.style.left = left + 'px';
         
-        // Remove and create new platforms
         if (left < -200) {
             platform.remove();
             createPlatform(800, Math.random() * 200 + 100);
         }
 
-        // Get platform hitbox
         const platformRect = platform.getBoundingClientRect();
         const gameRect = gameContainer.getBoundingClientRect();
         const platformHitbox = {
@@ -167,41 +208,37 @@ function gameLoop() {
             bottom: platformRect.bottom - gameRect.top
         };
 
-        // Check collision
         if (checkCollision(playerHitbox, platformHitbox)) {
             if (playerPos.y + 30 <= platformRect.top - gameRect.top && playerPos.velocityY > 0) {
                 nextY = platformRect.top - gameRect.top - 30;
                 playerPos.velocityY = 0;
                 isJumping = false;
-                canDoubleJump = true;  // Reset double jump when landing
+                canDoubleJump = true;
                 onPlatform = true;
             }
         }
     });
 
-    // Update player Y position
     playerPos.y = nextY;
 
-    // Check for game over
     if (playerPos.y > 400) {
         gameOver();
         return;
     }
 
-    // Update player position
     player.style.left = playerPos.x + 'px';
     player.style.top = playerPos.y + 'px';
 
-    // Update score
     score += 0.1;
     scoreDisplay.textContent = 'Score: ' + Math.floor(score);
 
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Add start game function
+// Game state functions
 function startGame() {
     gameRunning = true;
+    messageDisplay.style.display = 'none';
     score = 0;
     playerPos = {
         x: 100,
@@ -213,27 +250,34 @@ function startGame() {
     canDoubleJump = true;
     
     initPlatforms();
-    startButton.style.display = 'none';
     scoreDisplay.textContent = 'Score: 0';
     
     if (!animationFrameId) {
         gameLoop();
     }
+    
+    distractions.forEach(d => d.element.remove());
+    distractions = [];
 }
 
-// Add game over function
 function gameOver() {
     gameRunning = false;
     alert('Game Over! Score: ' + Math.floor(score));
-    startButton.style.display = 'block';
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
+    
+    player.style.left = '100px';
+    player.style.top = '300px';
+    
+    initPlatforms();
+    distractions.forEach(d => d.element.remove());
+    distractions = [];
+    
+    scoreDisplay.textContent = 'Score: 0';
+    messageDisplay.style.display = 'block';
 }
 
-// Add click listener for start button
-startButton.addEventListener('click', startGame);
-
-// Initialize game state but don't start automatically
+// Initialize game
 initPlatforms();
 player.style.left = '100px';
 player.style.top = '300px';
